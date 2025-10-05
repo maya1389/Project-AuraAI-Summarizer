@@ -1,4 +1,3 @@
-# Project-AuraAI-Summarizer
 # 🚀 NASA Space Biology Summarization Challenge
 
 This project was developed as part of a **NASA Space Biology Challenge**
