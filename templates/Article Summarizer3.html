@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Article Summarizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 dark:from-gray-900 dark:to-gray-800 font-sans">
+  <div class="container mx-auto px-6 py-8">
+    <header class="text-center mb-12">
+      <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent mb-4">
+        Article Summarizer
+      </h1>
+      <p class="text-xl text-gray-600 dark:text-gray-300">
+        Upload your CSV file and view the generated <b>final_summary</b>
+      </p>
+    </header>
+
+    <!-- Upload Section -->
+    <div id="uploadSection" class="max-w-3xl mx-auto mb-12 text-center">
+      <input type="file" id="csvFile" accept=".csv" class="hidden" />
+      <button
+        onclick="document.getElementById('csvFile').click()"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold"
+      >
+        Choose CSV File
+      </button>
+      <p id="fileName" class="mt-4 text-gray-700 hidden"></p>
+
+      <button
+        id="uploadBtn"
+        onclick="uploadCSV()"
+        disabled
+        class="bg-red-600 hover:bg-red-700 text-white px-12 py-3 rounded-lg font-semibold mt-6 disabled:opacity-50"
+      >
+        Process File
+      </button>
+
+      <p id="errorMessage" class="text-red-600 mt-4 hidden"></p>
+    </div>
+
+    <!-- Loading Section -->
+    <div id="loadingSection" class="hidden text-center">
+      <p class="text-xl text-gray-700 font-semibold">Processing your file...</p>
+      <div class="mt-6 w-64 mx-auto bg-gray-200 rounded-full h-4">
+        <div class="bg-gradient-to-r from-blue-500 to-red-500 h-4 rounded-full animate-pulse"></div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Generated Summaries</h2>
+      <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("csvFile");
+    const fileNameDisplay = document.getElementById("fileName");
+    const uploadBtn = document.getElementById("uploadBtn");
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith(".csv")) {
+        fileNameDisplay.textContent = `Selected: ${file.name}`;
+        fileNameDisplay.classList.remove("hidden");
+        uploadBtn.disabled = false;
+      } else {
+        showError("Please select a valid CSV file.");
+      }
+    });
+
+    async function uploadCSV() {
+      const file = fileInput.files[0];
+      if (!file) return showError("Please choose a CSV file first.");
+
+      document.getElementById("uploadSection").classList.add("hidden");
+      document.getElementById("loadingSection").classList.remove("hidden");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        document.getElementById("loadingSection").classList.add("hidden");
+
+        if (data.error) {
+          return showError(data.error);
+        }
+
+        displayResults(data);
+      } catch (err) {
+        showError("Error connecting to the server.");
+        console.error(err);
+      }
+    }
+
+    function displayResults(data) {
+      const section = document.getElementById("resultsSection");
+      const grid = document.getElementById("resultsGrid");
+      grid.innerHTML = "";
+
+      data.forEach((row) => {
+        const card = document.createElement("div");
+        card.className =
+          "bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700";
+        card.innerHTML = `
+          <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-3">${
+            row.title || "Untitled"
+          }</h3>
+          <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">${
+            row.final_summary || "No summary available."
+          }</p>
+        `;
+        grid.appendChild(card);
+      });
+
+      section.classList.remove("hidden");
+    }
+
+    function showError(msg) {
+      const err = document.getElementById("errorMessage");
+      err.textContent = msg;
+      err.classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
